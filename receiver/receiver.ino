@@ -4,18 +4,47 @@
 #include <stdint.h>
 
 // Pins
-#define LED_PIN 3
+#define RADIOCE 9
+#define RADIOCS 10
 #define RADIO_INTERRUPT_PIN 2
+#define LED_PIN 3
 
-// Constants
+#define ELMA_FRONT 3
+#define ELMA_BACKL 7
+#define ELMA_BACKR 8
+#define PUMP_LEFT  5
+#define PUMP_RIGHT 6
+
+// Abatper constants
+#define PUMPDESE_PWM_MAX 128
+#define ELMADESE_PWM_MAX 200
+
+// Radio constants
 byte writeAdress[6] = "Singu";
 byte readAdress[6] = "Pingu";
 const uint32_t ack = 1;
 
+// Enums
+typedef enum {
+  SMARTSYSTEM3000,
+  MANUALOVERRIDE
+} InputMode;
+
+typedef enum {
+  IDLE,
+  FORWARD,
+  LEFT,
+  RIGHT,
+  BACK
+} RopovState;
+
 // Global variables
-RF24 radio(9,10);
+RF24 radio(RADIOCE, RADIOCS);
 uint32_t lastmessage = 0;
 bool message_in_queue = false;
+
+InputMode inputMode = SMARTSYSTEM3000;
+RopovState state = IDLE, nextState = IDLE;
 
 // Main
 void setup() {
@@ -55,6 +84,13 @@ void loop() {
         message_in_queue = false;
         handleMessage(lastmessage);
     }
+    if (inputMode == SMARTSYSTEM3000) {
+        analogWrite(ELMA_FRONT, ELMADESE_PWM_MAX);
+        analogWrite(ELMA_BACKL, ELMADESE_PWM_MAX);
+        analogWrite(ELMA_BACKR, ELMADESE_PWM_MAX);
+        analogWrite(PUMP_LEFT,  PUMPDESE_PWM_MAX);
+        analogWrite(PUMP_RIGHT, PUMPDESE_PWM_MAX);
+    }
 }
 
 void catchMessage() {
@@ -70,10 +106,28 @@ void catchMessage() {
 bool handleMessage(int32_t message_in) {
     Serial.print(F("Message: "));
     Serial.println(message_in);
-    if (message_in == 1) {
-        digitalWrite(LED_PIN, HIGH);
+    inputMode = message_in & CODE_MANUAL_OVERRIDE_bm ? MANUALOVERRIDE : SMARTSYSTEM3000;
+    if (inputMode == SMARTSYSTEM3000) {
+        Serial.println(F("SMART-SYSTEM-3000"));
+        if (message_in & CODE_MOVE_FORWARD_bm) {
+            state = FORWARD;
+        } else if (message_in & CODE_MOVE_BACK_bm) {
+            state = BACK;
+        } else if (message_in & CODE_MOVE_LEFT_bm) {
+            state = LEFT;
+        } else if (message_in & CODE_MOVE_RIGHT_bm) {
+            state = RIGHT;
+        } else {
+            state = IDLE;
+        }
     } else {
-        digitalWrite(LED_PIN, LOW);
+        Serial.println(F("MANUAL OVERRIDE"));
+        analogWrite(ELMA_FRONT, message_in & CODE_ELMA_FRONT_bm ? ELMADESE_PWM_MAX : 0);
+        analogWrite(ELMA_BACKL, message_in & CODE_ELMA_BACKL_bm ? ELMADESE_PWM_MAX : 0);
+        analogWrite(ELMA_BACKR, message_in & CODE_ELMA_BACKR_bm ? ELMADESE_PWM_MAX : 0);
+        analogWrite(PUMP_LEFT,  message_in & CODE_PUMP_LEFT_bm  ? PUMPDESE_PWM_MAX : 0);
+        analogWrite(PUMP_RIGHT, message_in & CODE_PUMP_RIGHT_bm ? PUMPDESE_PWM_MAX : 0);
     }
+    Serial.println();
     return true;
 }
