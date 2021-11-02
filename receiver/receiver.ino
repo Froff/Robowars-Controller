@@ -25,11 +25,12 @@ void setup() {
 
     // Radio setup
     radio.begin();
-    radio.setPALevel(RF24_PA_HIGH);
+    //radio.setPALevel(RF24_PA_HIGH);
     radio.enableAckPayload();
     radio.enableDynamicPayloads();
     radio.openWritingPipe(writeAdress);
     radio.openReadingPipe(1, readAdress);
+
     radio.startListening();
     radio.writeAckPayload(1, &ack, sizeof(uint32_t));
     Serial.println(F("Finished radio setup"));
@@ -43,6 +44,10 @@ void setup() {
     pinMode(LED_PIN, OUTPUT);
 
     Serial.println(F("Finished setup"));
+
+    digitalWrite(LED_PIN, 1);
+    delay(500);
+    digitalWrite(LED_PIN, 0);
 }
 
 void loop() {

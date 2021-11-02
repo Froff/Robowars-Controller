@@ -27,7 +27,7 @@ void setup() {
 
     // Radio setup
     radio.begin();
-    radio.setPALevel(RF24_PA_HIGH);
+    //radio.setPALevel(RF24_PA_HIGH);
     radio.enableAckPayload();                         // We will be using the Ack Payload feature, so please enable it
     radio.enableDynamicPayloads();                    // Ack payloads are dynamic payloads
     radio.openWritingPipe(writeAdress);
@@ -42,6 +42,7 @@ void setup() {
     pinMode(SWITCH_PIN, INPUT_PULLUP);
 
     delay(50);
+    Serial.println("Setup Done");
 }
 
 void loop() {
