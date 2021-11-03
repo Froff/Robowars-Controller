@@ -7,7 +7,21 @@
 #define RADIOCE 9
 #define RADIOCS 10
 #define RADIO_INTERRUPT_PIN 2
+
 #define SWITCH_PIN 3
+#define PIN_MANUALOVERRIDE 3
+
+#define PIN_ELMA_FRONT 4
+#define PIN_ELMA_BACKL 5
+#define PIN_ELMA_BACKR 6
+#define PIN_PUMP_LEFT  7
+#define PIN_PUMP_RIGHT 8
+
+#define PIN_FORWARD 4
+#define PIN_BACK    5
+#define PIN_LEFT    6
+#define PIN_RIGHT   7
+#define PIN_IDLE    8
 
 // Constants *******************************************************************
 byte writeAdress[6] = "Pingu";
@@ -41,6 +55,12 @@ void setup() {
     // Switch setup
     pinMode(SWITCH_PIN, INPUT_PULLUP);
 
+    pinMode(PIN_FORWARD, INPUT_PULLUP);
+    pinMode(PIN_BACK, INPUT_PULLUP);
+    pinMode(PIN_LEFT, INPUT_PULLUP);
+    pinMode(PIN_RIGHT, INPUT_PULLUP);
+    pinMode(PIN_IDLE, INPUT_PULLUP);
+
     delay(50);
     Serial.println("Setup Done");
 }
@@ -57,11 +77,26 @@ uint32_t composeAndSendMessage () {
     return message;
 }
 
+bool pinIsHigh (uint32_t pin) {
+    return digitalRead(pin) == HIGH;
+}
+
 uint32_t composeMessage () {
     uint32_t message = 0;
-    if (digitalRead(SWITCH_PIN) == HIGH) {
-        message = 1;
+    bool manual_override = digitalRead(PIN_MANUALOVERRIDE) == HIGH;
+    if (manual_override) {
+        message = CODE_MANUAL_OVERRIDE_bm
+                |  (pinIsHigh(PIN_ELMA_FRONT) ? CODE_ELMA_FRONT_bm : 0)
+                |  (pinIsHigh(PIN_ELMA_BACKL) ? CODE_ELMA_BACKL_bm : 0)
+                |  (pinIsHigh(PIN_ELMA_BACKR) ? CODE_ELMA_BACKR_bm : 0)
+                |  (pinIsHigh(PIN_PUMP_LEFT)  ? CODE_PUMP_LEFT_bm  : 0)
+                |  (pinIsHigh(PIN_PUMP_RIGHT) ? CODE_PUMP_RIGHT_bm : 0)
+                ;
+    } else {
+        message = CODE_MOVE_FORWARD_bm;
     }
+
+
     return message;
 }
 
